@@ -1,0 +1,36 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: ai-adapter-service
+
+ai:
+  openai:
+    api-key: {OPENAI_API_KEY}
+  gemini:
+    api-key: {GEMINI_API_KEY}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+resilience4j.circuitbreaker:
+  instances:
+    chatgpt:
+      registerHealthIndicator: true
+      slidingWindowType: COUNT_BASED
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10s
+      permittedNumberOfCallsInHalfOpenState: 3
+      automaticTransitionFromOpenToHalfOpenEnabled: true
+    gemini:
+      registerHealthIndicator: true
+      slidingWindowType: COUNT_BASED
+      slidingWindowSize: 10
+      failureRateThreshold: 50
+      waitDurationInOpenState: 10s
+      permittedNumberOfCallsInHalfOpenState: 3
+      automaticTransitionFromOpenToHalfOpenEnabled: true
