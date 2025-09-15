@@ -1,0 +1,6 @@
+rootProject.name = 'AiAccuracy'
+
+include 'discovery-service'
+include 'core-service'
+include 'ai-adapter-service'
+include 'circuit-breaker-service'
