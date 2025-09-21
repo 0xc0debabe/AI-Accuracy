@@ -25,7 +25,8 @@ public class RedisMessageSubscriber implements MessageListener {
             String msg = new String(message.getBody());
             JobStatusUpdate update = objectMapper.readValue(msg, JobStatusUpdate.class);
             log.debug("Received message from Redis: {}", update);
-            messagingTemplate.convertAndSend("/topic/job-status/" + update.jobId(), update);
+//            messagingTemplate.convertAndSend("/topic/job-status/" + update.jobId(), update);
+            messagingTemplate.convertAndSend("/topic/job-status/test", update);
         } catch (IOException e) {
             log.error("Error processing Redis message: {}", e.getMessage());
         }

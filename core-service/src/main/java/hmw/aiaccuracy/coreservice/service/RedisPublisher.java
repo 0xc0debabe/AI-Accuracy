@@ -1,7 +1,5 @@
 package hmw.aiaccuracy.coreservice.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import hmw.aiaccuracy.coreservice.dto.JobStatusUpdate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,14 +12,13 @@ import org.springframework.stereotype.Service;
 public class RedisPublisher {
 
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ObjectMapper objectMapper;
 
     public void publish(JobStatusUpdate update) {
         try {
-            String message = objectMapper.writeValueAsString(update);
-            redisTemplate.convertAndSend("job-status-topic", message);
-            log.debug("Published to Redis topic 'job-status-topic': {}", message);
-        } catch (JsonProcessingException e) {
+            // 객체를 직접 RedisTemplate에 전달하여 직렬화를 위임합니다.
+            redisTemplate.convertAndSend("job-status-topic", update);
+            log.debug("Published to Redis topic 'job-status-topic': {}", update);
+        } catch (Exception e) {
             log.error("Error publishing message to Redis: {}", e.getMessage());
         }
     }
