@@ -14,20 +14,17 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/verify")
 @RequiredArgsConstructor
 public class VerificationController {
 
     private final RabbitTemplate rabbitTemplate;
 
-    @PostMapping
+    @PostMapping("/verify")
     public ResponseEntity<String> startVerification(@RequestBody VerificationRequest request) {
         String jobId = UUID.randomUUID().toString();
         log.info("Verification request received for prompt: {} with jobId: {}", request.prompt(), jobId);
 
-        // Publish message to RabbitMQ
         rabbitTemplate.convertAndSend("verification-exchange", "verification-routing-key", jobId + ":" + request.prompt());
-
         return ResponseEntity.ok(jobId);
     }
 }

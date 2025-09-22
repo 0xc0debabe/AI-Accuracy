@@ -1,4 +1,4 @@
 package hmw.aiaccuracy.coreservice.dto;
 
-public record AIResponse(String answer) {
+public record AIResponse(String answer, boolean isFallback) {
 }
