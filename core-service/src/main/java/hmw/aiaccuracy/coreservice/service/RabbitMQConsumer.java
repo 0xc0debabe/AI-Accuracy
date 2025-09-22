@@ -1,9 +1,12 @@
 package hmw.aiaccuracy.coreservice.service;
 
 import hmw.aiaccuracy.coreservice.config.RabbitMQConfig;
+import hmw.aiaccuracy.coreservice.dto.JobStatusUpdate;
+import hmw.aiaccuracy.coreservice.dto.VerificationTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -12,17 +15,23 @@ import org.springframework.stereotype.Service;
 public class RabbitMQConsumer {
 
     private final VerificationProcessorService verificationProcessorService;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
-    public void receiveMessage(String message) {
-        log.info("Received message from RabbitMQ: {}", message);
-        String[] parts = message.split(":", 2);
-        if (parts.length == 2) {
-            String jobId = parts[0];
-            String prompt = parts[1];
-            verificationProcessorService.processVerification(jobId, prompt);
-        } else {
-            log.error("Invalid message format received: {}", message);
+    @RabbitListener(queues = RabbitMQConfig.VERIFICATION_QUEUE)
+    public void receiveVerificationMessage(VerificationTask task) {
+        log.info("Received message from RabbitMQ: {}, {}", task.jobId(), task.prompt());
+        verificationProcessorService.processVerification(task.jobId(), task.prompt());
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.WS_QUEUE)
+    public void receiveWsMessage(JobStatusUpdate update) {
+        try {
+            log.debug("Received message from RabbitMQ: {}", update);
+//            messagingTemplate.convertAndSend("/topic/" + update.jobId(), update);
+            messagingTemplate.convertAndSend("/topic/test", update);
+        } catch (Exception e) {
+            log.error("Error processing RabbitMQ message and sending to WebSocket: {}", e.getMessage());
         }
     }
+
 }

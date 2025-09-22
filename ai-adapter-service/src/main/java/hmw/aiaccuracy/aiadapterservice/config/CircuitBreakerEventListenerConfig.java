@@ -10,12 +10,17 @@ import org.springframework.context.event.EventListener;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
-@RequiredArgsConstructor
 @Slf4j
 public class CircuitBreakerEventListenerConfig {
 
-    @Qualifier("loadBalancedWebClientBuilder")
     private final WebClient.Builder webClientBuilder;
+
+    public CircuitBreakerEventListenerConfig(
+            @Qualifier("loadBalancedWebClientBuilder") WebClient.Builder webClientBuilder
+    ) {
+        this.webClientBuilder = webClientBuilder;
+    }
+
 
     @EventListener
     public void onCircuitBreakerStateTransition(CircuitBreakerOnStateTransitionEvent event) {

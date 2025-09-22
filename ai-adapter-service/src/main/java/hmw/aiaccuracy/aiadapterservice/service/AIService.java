@@ -79,8 +79,6 @@ public class AIService {
                 .thenApply(ScoreResponse::new); // 파싱된 점수로 ScoreResponse 객체 생성
     }
 
-    // --- Private Helper Methods for AI API Calls ---
-
     private CompletableFuture<AIResponse> callChatGPTApi(String prompt) {
         try {
             OpenAIChatRequest chatRequest = new OpenAIChatRequest(

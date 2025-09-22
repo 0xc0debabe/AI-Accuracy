@@ -1,6 +1,8 @@
 package hmw.aiaccuracy.coreservice.controller;
 
+import hmw.aiaccuracy.coreservice.config.RabbitMQConfig;
 import hmw.aiaccuracy.coreservice.dto.VerificationRequest;
+import hmw.aiaccuracy.coreservice.dto.VerificationTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -24,7 +26,8 @@ public class VerificationController {
         String jobId = UUID.randomUUID().toString();
         log.info("Verification request received for prompt: {} with jobId: {}", request.prompt(), jobId);
 
-        rabbitTemplate.convertAndSend("verification-exchange", "verification-routing-key", jobId + ":" + request.prompt());
+        VerificationTask verificationTask = new VerificationTask(jobId, request.prompt());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.VERIFICATION_ROUTING_KEY, verificationTask);
         return ResponseEntity.ok(jobId);
     }
 }

@@ -1,5 +1,6 @@
 package hmw.aiaccuracy.coreservice.service;
 
+import hmw.aiaccuracy.coreservice.config.RabbitMQConfig;
 import hmw.aiaccuracy.coreservice.domain.VerificationResult;
 import hmw.aiaccuracy.coreservice.dto.AIResponse;
 import hmw.aiaccuracy.coreservice.dto.FinalVerificationResult;
@@ -9,6 +10,7 @@ import hmw.aiaccuracy.coreservice.dto.ScoreResponse;
 import hmw.aiaccuracy.coreservice.repository.VerificationResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -18,12 +20,13 @@ import reactor.core.publisher.Mono;
 public class VerificationProcessorService {
 
     private final AIAdapterClient aiAdapterClient;
-    private final RedisPublisher redisPublisher;
+//    private final RedisPublisher redisPublisher;
     private final VerificationResultRepository verificationResultRepository;
+    private final RabbitTemplate rabbitTemplate;
 
     public void processVerification(String jobId, String prompt) {
         log.info("Starting verification for jobId: {} with prompt: {}", jobId, prompt);
-        redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.STARTED, "질문에 대한 답변을 ChatGPT와 Gemini에게 받아오고 있습니다.", null));
+        sendMsgToUser(jobId, JobStatus.STARTED, "질문에 대한 답변을 ChatGPT와 Gemini에게 받아오고 있습니다.", null);
 
         Mono<AIResponse> chatgptMono = getInitialResponseMono("chatgpt", prompt, jobId);
         Mono<AIResponse> geminiMono = getInitialResponseMono("gemini", prompt, jobId);
@@ -37,18 +40,18 @@ public class VerificationProcessorService {
                         int chatGptScore = chatgptResponse.isFallback() ? -1 : 100;
                         int geminiScore = geminiResponse.isFallback() ? -1 : 100;
                         log.warn("One or both AI responses are fallbacks for jobId: {}. Skipping scoring.", jobId);
-                        redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.INCORRECT_VALIDATION, "정확도 분석 하는 데에 실패하였습니다.", null));
+                        sendMsgToUser(jobId, JobStatus.INCORRECT_VALIDATION, "정확도 분석 하는 데에 실패하였습니다.", null);
                         return Mono.just(new Object[]{chatgptResponse.answer(), geminiResponse.answer(), chatGptScore, geminiScore});
                     }
 
-                    redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.VALIDATING, "답변을 받아왔고 정확도를 분석 중입니다.", null));
+                    sendMsgToUser(jobId, JobStatus.VALIDATING, "답변을 받아왔고 정확도를 분석 중입니다.", null);
 
                     Mono<ScoreResponse> scoreFromGemini = aiAdapterClient.getScore("gemini", prompt, chatgptResponse.answer())
-                            .doOnNext(res -> redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.GEMINI_SCORED, "Gemini로부터 ChatGpt의 응답 점수를 받아왔습니다.", res)))
+                            .doOnNext(res -> sendMsgToUser(jobId, JobStatus.GEMINI_SCORED, "Gemini로부터 ChatGpt의 응답 점수를 받아왔습니다.", res))
                             .onErrorReturn(new ScoreResponse(-1));
 
                     Mono<ScoreResponse> scoreFromChatgpt = aiAdapterClient.getScore("chatgpt", prompt, geminiResponse.answer())
-                            .doOnNext(res -> redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.CHATGPT_SCORED, "ChatGPT로부터 Gemini의 응답 점수를 받아왔습니다.", res)))
+                            .doOnNext(res -> sendMsgToUser(jobId, JobStatus.CHATGPT_SCORED, "ChatGPT로부터 Gemini의 응답 점수를 받아왔습니다.", res))
                             .onErrorReturn(new ScoreResponse(-1));
 
                     return Mono.zip(scoreFromGemini, scoreFromChatgpt)
@@ -58,6 +61,13 @@ public class VerificationProcessorService {
                 .doOnError(e -> handleProcessingError(jobId, e))
                 .subscribe(result -> log.info("Verification process completed for jobId: {}", result.getJobId()),
                         e -> log.error("Error in verification subscription for jobId: {}", jobId, e));
+    }
+
+    private void sendMsgToUser(String jobId, JobStatus status, String msg, Object data) {
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.WS_ROUTING_KEY,
+                new JobStatusUpdate(jobId, status, msg, data)
+        );
     }
 
     private Mono<AIResponse> getInitialResponseMono(String model, String prompt, String jobId) {
@@ -70,18 +80,18 @@ public class VerificationProcessorService {
                     if (res != null && res.answer() != null) {
                         if (res.isFallback()) {
                             log.warn("{} AI call for jobId {} returned a fallback response.", model, jobId);
-                            redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.FALLBACK_PROVIDED, model + "의 응답을 받아오는 데 실패하였습니다.", res.answer()));
+                            sendMsgToUser(jobId, JobStatus.FALLBACK_PROVIDED, model + "의 응답을 받아오는 데 실패하였습니다.", res.answer());
                         } else {
-                            redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.FETCHED, model + "의 응답을 받아왔습니다.", null));
+                            sendMsgToUser(jobId, JobStatus.FETCHED, model + "의 응답을 받아왔습니다.", null);
                         }
                     } else {
                         log.warn("{} AI call for jobId {} returned null or empty answer in doOnNext. Treating as skipped/failed.", model, jobId);
-                        redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.FAILED, model + "의 응답을 받아오는데 실패하였습니다.", null));
+                        sendMsgToUser(jobId, JobStatus.FAILED, model + "의 응답을 받아오는데 실패하였습니다.", null);
                     }
                 })
                 .onErrorResume(throwable -> {
                     log.warn("Error during {} AI call for jobId {}: {}", model, jobId, throwable.getMessage());
-                    redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.FAILED, model + "의 응답을 받아오는데 실패하였습니다.", throwable.getMessage()));
+                    sendMsgToUser(jobId, JobStatus.FAILED, model + "의 응답을 받아오는데 실패하였습니다.", throwable.getMessage());
                     return Mono.just(new AIResponse(null, true));
                 });
     }
@@ -114,14 +124,14 @@ public class VerificationProcessorService {
         log.info("Verification completed and result saved for jobId: {}", savedResult.getJobId());
 
         FinalVerificationResult finalDto = new FinalVerificationResult(chosenModel, finalAnswer, finalScore);
-        redisPublisher.publish(new JobStatusUpdate(savedResult.getJobId(), JobStatus.COMPLETED, "검증이 완료되었습니다.", finalDto));
+        sendMsgToUser(jobId, JobStatus.COMPLETED, "검증이 완료되었습니다.", finalDto);
 
         return savedResult;
     }
 
     private void handleProcessingError(String jobId, Throwable e) {
         log.error("Overall verification process failed for jobId {}: {}", jobId, e.getMessage());
-        redisPublisher.publish(new JobStatusUpdate(jobId, JobStatus.FAILED, "응답을 받아오지 못했습니다.", e.getMessage()));
+        sendMsgToUser(jobId, JobStatus.FAILED, "응답을 받아오지 못했습니다.", e.getMessage());
     }
 
 }
