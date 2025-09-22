@@ -7,9 +7,9 @@ spring:
 
 ai:
   openai:
-    api-key: {OPENAI_API_KEY}
+    api-key: ${OPENAI_API_KEY} # <-- {OPENAI_API_KEY}에서 ${OPENAI_API_KEY}로 수정
   gemini:
-    api-key: {GEMINI_API_KEY}
+    api-key: ${GEMINI_API_KEY}   # <-- {GEMINI_API_KEY}에서 ${GEMINI_API_KEY}로 수정
 
 eureka:
   client:
