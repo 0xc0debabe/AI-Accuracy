@@ -17,21 +17,9 @@ public class CircuitBreakerController {
 
     private final CircuitManagerService circuitManagerService;
 
-    @PostMapping("/report")
-    public ResponseEntity<Void> reportFailure(@RequestBody FailureReport report) {
-        circuitManagerService.reportFailure(report.circuitName());
-        return ResponseEntity.ok().build();
-    }
-
-    @GetMapping("/status/{circuitName}")
-    public ResponseEntity<Map<String, Object>> getStatus(@PathVariable String circuitName) {
-        CircuitStatus status = circuitManagerService.getStatus(circuitName);
-        return ResponseEntity.ok(Map.of("circuitName", circuitName, "status", status));
-    }
-
-    @PostMapping("/manual/{circuitName}/{status}")
-    public ResponseEntity<Void> manualUpdate(@PathVariable String circuitName, @PathVariable CircuitStatus status) {
-        circuitManagerService.manualUpdate(circuitName, status);
+    @PostMapping("/notify-open/{circuitName}")
+    public ResponseEntity<Void> notifyCircuitOpen(@PathVariable String circuitName) {
+        circuitManagerService.propagateCircuitOpen(circuitName);
         return ResponseEntity.ok().build();
     }
 }
