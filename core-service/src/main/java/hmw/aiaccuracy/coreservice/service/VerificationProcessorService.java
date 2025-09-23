@@ -1,6 +1,6 @@
 package hmw.aiaccuracy.coreservice.service;
 
-import hmw.aiaccuracy.coreservice.config.RabbitMQConfig;
+import hmw.aiaccuracy.coreservice.config.KafkaConstants;
 import hmw.aiaccuracy.coreservice.domain.VerificationResult;
 import hmw.aiaccuracy.coreservice.dto.AIResponse;
 import hmw.aiaccuracy.coreservice.dto.FinalVerificationResult;
@@ -10,7 +10,7 @@ import hmw.aiaccuracy.coreservice.dto.ScoreResponse;
 import hmw.aiaccuracy.coreservice.repository.VerificationResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -20,9 +20,8 @@ import reactor.core.publisher.Mono;
 public class VerificationProcessorService {
 
     private final AIAdapterClient aiAdapterClient;
-//    private final RedisPublisher redisPublisher;
     private final VerificationResultRepository verificationResultRepository;
-    private final RabbitTemplate rabbitTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public void processVerification(String jobId, String prompt) {
         log.info("Starting verification for jobId: {} with prompt: {}", jobId, prompt);
@@ -64,8 +63,8 @@ public class VerificationProcessorService {
     }
 
     private void sendMsgToUser(String jobId, JobStatus status, String msg, Object data) {
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.WS_ROUTING_KEY,
+        kafkaTemplate.send(
+                KafkaConstants.TOPIC_WS_MSG_REQUEST,
                 new JobStatusUpdate(jobId, status, msg, data)
         );
     }

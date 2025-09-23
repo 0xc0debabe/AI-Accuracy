@@ -30,7 +30,6 @@ services:
       discovery-service:
         condition: service_healthy
     environment:
-      # Eureka 서버 주소 다시 추가
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
     networks:
       - ai-accuracy-net
@@ -47,7 +46,6 @@ services:
       discovery-service:
         condition: service_healthy
     environment:
-      # Eureka 서버 주소 다시 추가
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -69,15 +67,12 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
     environment:
       - DB_HOST=db
       - DB_PORT=3306
       - DB_NAME=ai_accuracy_db
       - DB_USERNAME=user
       - DB_PASSWORD=password
-      - SPRING_RABBITMQ_HOST=rabbitmq
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
     networks:
       - ai-accuracy-net
@@ -115,20 +110,34 @@ services:
     networks:
       - ai-accuracy-net
 
-  # 7. RabbitMQ
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
+  # 7. Zookeeper
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    platform: linux/arm64
     ports:
-      - "5672:5672"
-      - "15672:15672"
-      - "61613:61613"
-    volumes:
-      - ./enabled_plugins:/etc/rabbitmq/enabled_plugins
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "check_running", "-q"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - ai-accuracy-net
+
+  # 8. Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    platform: linux/arm64
+    ports:
+      - "9092:9093"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: "verification-request:1:1,ws-msg-request:1:1"
     networks:
       - ai-accuracy-net
 

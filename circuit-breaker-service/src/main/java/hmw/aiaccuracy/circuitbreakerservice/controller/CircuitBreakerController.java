@@ -1,14 +1,12 @@
 package hmw.aiaccuracy.circuitbreakerservice.controller;
 
-import hmw.aiaccuracy.circuitbreakerservice.domain.CircuitStatus;
-import hmw.aiaccuracy.circuitbreakerservice.dto.FailureReport;
 import hmw.aiaccuracy.circuitbreakerservice.service.CircuitManagerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/circuits")

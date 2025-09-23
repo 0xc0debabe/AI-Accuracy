@@ -16,13 +16,13 @@ public class VerificationResult {
     @Id
     private String jobId;
 
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String prompt;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String chatgptAnswer;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String geminiAnswer;
 
     // 점수 필드 추가
@@ -33,7 +33,7 @@ public class VerificationResult {
     @Column(length = 255)
     private String chosenModel;
 
-    @Column(length = 4000)
+    @Column(columnDefinition = "TEXT")
     private String finalAnswer;
 
     private Integer finalScore;
@@ -44,14 +44,10 @@ public class VerificationResult {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-
     public static VerificationResult create(String jobId, String prompt, String chatgptAnswer, String geminiAnswer, int chatgptScore, int geminiScore, String chosenModel, String finalAnswer, int finalScore) {
         return new VerificationResult(
                 jobId, prompt, chatgptAnswer, geminiAnswer, chatgptScore, geminiScore,
                 chosenModel, finalAnswer, finalScore, "COMPLETED", LocalDateTime.now());
     }
+
 }

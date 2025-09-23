@@ -1,4 +1,13 @@
 package hmw.aiaccuracy.coreservice.dto;
 
-public record VerificationTask(String jobId, String prompt) {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class VerificationTask {
+    private String jobId;
+    private String prompt;
 }
