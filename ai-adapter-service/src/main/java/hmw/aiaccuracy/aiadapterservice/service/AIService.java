@@ -152,8 +152,6 @@ public class AIService {
         }
     }
 
-    // --- Fallback and Circuit Breaker Notification Methods ---
-
     private CompletableFuture<AIResponse> fallbackChatGPT(String prompt, Throwable t) {
         log.error("Circuit breaker opened for ChatGPT. Falling back. Error: {}", t.getMessage());
         return CompletableFuture.completedFuture(new AIResponse("Fallback response for ChatGPT due to circuit open.", true));

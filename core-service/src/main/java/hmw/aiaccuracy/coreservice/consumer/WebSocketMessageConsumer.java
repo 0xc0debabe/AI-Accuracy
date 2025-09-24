@@ -16,12 +16,12 @@ public class WebSocketMessageConsumer {
 
     private final SimpMessagingTemplate messagingTemplate;
 
-    @KafkaListener(topics = KafkaConstants.TOPIC_WS_MSG_REQUEST, groupId = KafkaConstants.GROUP_ID_WS_BROADCASTER)
+    @KafkaListener(topics = KafkaConstants.TOPIC_WS_MSG_REQUEST, groupId = "${spring.kafka.consumer.group-id}")
     public void consumeJobStatusUpdate(JobStatusUpdate update, Acknowledgment acknowledgment) {
         try {
             log.debug("Consumed job status update from Kafka: {}", update);
-//            messagingTemplate.convertAndSend("/topic/" + update.jobId(), update);
-            messagingTemplate.convertAndSend("/topic/test", update);
+            messagingTemplate.convertAndSend("/topic/" + update.jobId(), update);
+//            messagingTemplate.convertAndSend("/topic/test", update);
             acknowledgment.acknowledge();
         } catch (Exception e) {
             log.error("Error processing Kafka message and sending to WebSocket: {}", e.getMessage());
