@@ -2,11 +2,7 @@ package hmw.aiaccuracy.coreservice.service;
 
 import hmw.aiaccuracy.coreservice.config.KafkaConstants;
 import hmw.aiaccuracy.coreservice.domain.VerificationResult;
-import hmw.aiaccuracy.coreservice.dto.AIResponse;
-import hmw.aiaccuracy.coreservice.dto.FinalVerificationResult;
-import hmw.aiaccuracy.coreservice.dto.JobStatus;
-import hmw.aiaccuracy.coreservice.dto.JobStatusUpdate;
-import hmw.aiaccuracy.coreservice.dto.ScoreResponse;
+import hmw.aiaccuracy.coreservice.dto.*;
 import hmw.aiaccuracy.coreservice.repository.VerificationResultRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +19,9 @@ public class VerificationProcessorService {
     private final VerificationResultRepository verificationResultRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void processVerification(String jobId, String prompt) {
+    public void processVerification(VerificationTask task) {
+        String jobId = task.getJobId();
+        String prompt = task.getPrompt();
         log.info("Starting verification for jobId: {} with prompt: {}", jobId, prompt);
         sendMsgToUser(jobId, JobStatus.STARTED, "질문에 대한 답변을 ChatGPT와 Gemini에게 받아오고 있습니다.", null);
 
