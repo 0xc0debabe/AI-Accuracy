@@ -1,0 +1,16 @@
+eureka:
+  client:
+    enabled: false
+
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: TEST
+    password: "test test test test"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
