@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class VerificationController {
 
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final VerificationProcessorService verificationProcessorService;
 
     @PostMapping("/verify")
@@ -28,7 +29,7 @@ public class VerificationController {
         log.info("Verification request received for prompt: {} with jobId: {}", request.prompt(), jobId);
 
         VerificationTask task = new VerificationTask(jobId, request.prompt());
-        CompletableFuture.runAsync(() -> verificationProcessorService.processVerification(task));
+        kafkaTemplate.send(KafkaConstants.TOPIC_VERIFICATION_REQUEST, task);
 
         return ResponseEntity.ok(jobId);
     }

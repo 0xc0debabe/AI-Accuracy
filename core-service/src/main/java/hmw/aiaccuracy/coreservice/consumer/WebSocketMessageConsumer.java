@@ -20,8 +20,8 @@ public class WebSocketMessageConsumer {
     public void consumeJobStatusUpdate(JobStatusUpdate update, Acknowledgment acknowledgment) {
         try {
             log.debug("Consumed job status update from Kafka: {}", update);
-            messagingTemplate.convertAndSend("/topic/" + update.jobId(), update);
-//            messagingTemplate.convertAndSend("/topic/test", update);
+//            messagingTemplate.convertAndSend("/topic/" + update.jobId(), update);
+            messagingTemplate.convertAndSend("/topic/test", update);
             acknowledgment.acknowledge();
         } catch (Exception e) {
             log.error("Error processing Kafka message and sending to WebSocket: {}", e.getMessage());
